@@ -45,7 +45,14 @@ jobs:
           if grep -q "BUILD SUCCESSFUL" ../build_output.txt; then
             echo "✅ Build completed successfully"
           else
-            echo "❌ Build failed"
+            echo "❌ Build failed - publishing logs to build-logs branch"
+            cd ..
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git checkout -B build-logs
+            git add -f build_output.txt
+            git commit -m "build failure log" || true
+            git push -f origin build-logs || true
             exit 1
           fi
 
