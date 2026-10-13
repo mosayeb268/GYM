@@ -46,12 +46,26 @@ jobs:
             exit 1
           }
 
+      - name: Locate and Collect APK
+        run: |
+          mkdir -p release-apks
+          find android -name "*.apk" -type f -exec cp -v {} release-apks/ \;
+          ls -la release-apks/
+          count=$(ls -1 release-apks/*.apk 2>/dev/null | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "❌ No APK found anywhere in android directory!"
+            find android -name "*apk*"
+            exit 1
+          fi
+          echo "✅ Found $count APK file(s):"
+          ls -lh release-apks/*.apk
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: KineticCare-OS-v1.0.0-Debug-APK
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: release-apks/*.apk
+          if-no-files-found: error
           retention-days: 30
 
       - name: Upload Build Reports on Failure
@@ -70,6 +84,8 @@ jobs:
         with:
           tag_name: v1.0.0
           name: "Kinetic Care OS v1.0.0 (نسخه رسمی اندروید)"
+          files: release-apks/*.apk
+          fail_on_unmatched_files: true
           body: |
             ## 📱 فایل نصبی سامانه جامع کینتیک کر (Kinetic Care OS)
             ### ویژه کلینیک ورزشی و حرکات اصلاحی دکتر قدم‌پور (Ph.D. فیزیولوژی ورزشی)
@@ -86,7 +102,6 @@ jobs:
             - **ماژول کامل پذیرش و تشکیل پرونده، حسابداری شهریه به تومان، صدور فاکتور رسمی و تنظیم سهمیه جلسات.**
             - **سیستم مانیتورینگ آنلاین گیت و تخصیص کمد هوشمند (Smart Locker)** به همراه هشدار CRM غیبت.
             - **صدور گزارش رسمی ارتوپدی (PDF)** با حل مشکل گسستگی حروف فارسی (BiDi Reshaper).
-          files: android/app/build/outputs/apk/debug/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
