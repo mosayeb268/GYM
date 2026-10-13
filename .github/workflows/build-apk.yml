@@ -1,0 +1,68 @@
+name: Build Kinetic Care OS APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          gradle :app:assembleDebug --stacktrace
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KineticCare-OS-v1.0.0-Debug-APK
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.0
+          name: "Kinetic Care OS v1.0.0 (نسخه رسمی اندروید)"
+          body: |
+            ## 📱 فایل نصبی سامانه جامع کینتیک کر (Kinetic Care OS)
+            ### ویژه کلینیک ورزشی و حرکات اصلاحی دکتر قدم‌پور (Ph.D. فیزیولوژی ورزشی)
+            
+            فایل نصبی APK نسخه دیباگ جهت تست و اجرا روی انواع گوشی‌های هوشمند و تبلت‌های اندروید.
+            
+            ---
+            ### 🌟 قابلیت‌های نسخه ۱.۰.۰:
+            - **طراحی ۱۰۰٪ راست‌به‌چپ (RTL) و تایپوگرافی وزیرمتن** با ارقام فارسی و تقویم شمسی جلالی.
+            - **فوتوگرامتری خطوط شاقولی با سنسور شیب‌سنج تراز ژیروسکوپ** در CameraX.
+            - **مقایسه قبل و بعد اصلاح ساختار قامت** با اسلایدر شبح (Ghost Overlay).
+            - **بارکد پویای تردد گیت (Dynamic QR)** با توکن امنیتی بر پایه HMAC و تلرانس زمانی.
+            - **ثبت نمره درد دیداری مراجع (VAS)** و اعمال رگرسیون هوشمند حرکات متداخل (قفل ددلیفت به پل باسن).
+            - **ماژول کامل پذیرش و تشکیل پرونده، حسابداری شهریه به تومان، صدور فاکتور رسمی و تنظیم سهمیه جلسات.**
+            - **سیستم مانیتورینگ آنلاین گیت و تخصیص کمد هوشمند (Smart Locker)** به همراه هشدار CRM غیبت.
+            - **صدور گزارش رسمی ارتوپدی (PDF)** با حل مشکل گسستگی حروف فارسی (BiDi Reshaper).
+          files: android/app/build/outputs/apk/debug/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
