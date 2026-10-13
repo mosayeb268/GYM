@@ -187,7 +187,7 @@ app.post('/api/v1/clients/register', async (req: Request, res: Response) => {
 app.post('/api/v1/clients/adjust-sessions', async (req: Request, res: Response) => {
   try {
     const { subscriptionId, deltaSessions, reasonFa, adjustedByUserId } = req.body;
-    if (!subscriptionId || deltaSessions === undefined || !reasonFa) {
+    if (!subscriptionId || deltaSessions === undefined || isNaN(Number(deltaSessions)) || !reasonFa) {
       return res.status(400).json({ error: 'اطلاعات تغییر جلسه و دلیل الزامی است.' });
     }
     const result = await ClientManagementService.adjustSessions({
@@ -205,6 +205,9 @@ app.post('/api/v1/clients/adjust-sessions', async (req: Request, res: Response) 
 app.post('/api/v1/clients/freeze', async (req: Request, res: Response) => {
   try {
     const { subscriptionId, freezeDays, reasonFa } = req.body;
+    if (!subscriptionId || !freezeDays || isNaN(Number(freezeDays)) || Number(freezeDays) <= 0) {
+      return res.status(400).json({ error: 'شناسه اشتراک و تعداد روزهای مجاز فریز (بزرگتر از صفر) الزامی است.' });
+    }
     const result = await ClientManagementService.freezeSubscription({
       subscriptionId,
       freezeDays: Number(freezeDays),

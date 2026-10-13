@@ -66,8 +66,8 @@ class KineticApiClient(
      * ۳. ارزیابی نمره درد مراجع و رگرسیون هوشمند تمرین
      */
     suspend fun evaluatePain(
-        clientId: string,
-        exerciseId: string,
+        clientId: String,
+        exerciseId: String,
         prePainVas: Int,
         painRegion: String
     ): NetworkResult<Triple<Boolean, String, String?>> = withContext(Dispatchers.IO) {

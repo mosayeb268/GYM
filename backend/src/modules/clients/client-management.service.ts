@@ -32,6 +32,15 @@ export class ClientManagementService {
       throw new Error('کاربری با این شماره تلفن همراه قبلاً در سیستم ثبت شده است.');
     }
 
+    if (params.nationalCode) {
+      const existingByNationalCode = await prisma.user.findUnique({
+        where: { nationalCode: params.nationalCode },
+      });
+      if (existingByNationalCode) {
+        throw new Error('کاربری با این کد ملی قبلاً در سیستم ثبت شده است.');
+      }
+    }
+
     const user = await prisma.user.create({
       data: {
         fullName: params.fullName,
@@ -131,7 +140,7 @@ export class ClientManagementService {
     const now = new Date();
     const freezeEndDate = new Date(Date.now() + params.freezeDays * 24 * 60 * 60 * 1000);
     // تمدید متناظر تاریخ پایان اعتبار اشتراک
-    const newSubEndDate = new Date(sub.endDate.getTime() + params.freezeDays * 24 * 60 * 60 * 1000);
+    const newSubEndDate = new Date(new Date(sub.endDate).getTime() + params.freezeDays * 24 * 60 * 60 * 1000);
 
     await prisma.subscription.update({
       where: { id: sub.id },
@@ -179,13 +188,13 @@ export class ClientManagementService {
 
     const absentClients = activeClients.filter((client) => {
       const lastCheckIn = client.attendanceLogs[0]?.checkedInAt;
-      return !lastCheckIn || lastCheckIn < cutoffDate;
+      return !lastCheckIn || new Date(lastCheckIn) < cutoffDate;
     });
 
     return absentClients.map((client) => {
       const lastCheckIn = client.attendanceLogs[0]?.checkedInAt;
       const daysSinceLastVisit = lastCheckIn
-        ? Math.floor((Date.now() - lastCheckIn.getTime()) / (24 * 60 * 60 * 1000))
+        ? Math.floor((Date.now() - new Date(lastCheckIn).getTime()) / (24 * 60 * 60 * 1000))
         : 'نامشخص';
 
       return {

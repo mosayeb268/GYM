@@ -46,6 +46,9 @@ export class QrTurnstileService {
 
     const [userId, timestampStr, clientSignature] = parts;
     const clientTimestamp = parseInt(timestampStr, 10);
+    if (isNaN(clientTimestamp) || clientTimestamp <= 0) {
+      return { allowed: false, messageFa: 'برچسب زمانی بارکد نامعتبر است.' };
+    }
     const now = Math.floor(Date.now() / 1000);
 
     // ۱. اعتبارسنجی امضای رمزنگاری HMAC-SHA256
