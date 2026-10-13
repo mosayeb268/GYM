@@ -1,0 +1,226 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  CLINICAL_DIRECTOR
+  CORRECTIVE_TRAINER
+  FITNESS_COACH
+  NUTRITIONIST
+  RECEPTIONIST
+  ATHLETE_CLIENT
+}
+
+enum SubscriptionType {
+  TIME_BASED
+  SESSION_BASED
+  HYBRID
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  FROZEN
+  EXPIRED
+}
+
+enum PosturalView {
+  ANTERIOR
+  POSTERIOR
+  LATERAL_LEFT
+  LATERAL_RIGHT
+}
+
+model User {
+  id                String            @id @default(uuid())
+  phoneNumber       String            @unique // e.g. 09123456789
+  nationalCode      String?           @unique // کد ملی ۱۰ رقمی
+  fullName          String
+  role              Role              @default(ATHLETE_CLIENT)
+  avatarUrl         String?
+  birthDateUtc      DateTime?
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  subscriptions     Subscription[]
+  assessments       Assessment[]      @relation("ClientAssessments")
+  supervisedAssess  Assessment[]      @relation("SupervisorAssessments")
+  workoutPrograms   WorkoutProgram[]
+  attendanceLogs    AttendanceLog[]
+  dietPlans         DietPlan[]
+  dailySessionLogs  DailySessionLog[]
+
+  @@index([phoneNumber])
+  @@index([role])
+}
+
+model Subscription {
+  id                String             @id @default(uuid())
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planTitle         String
+  type              SubscriptionType
+  status            SubscriptionStatus @default(ACTIVE)
+  startDate         DateTime
+  endDate           DateTime
+  totalSessions     Int?
+  remainingSessions Int?
+  includesClinical  Boolean            @default(false)
+  priceToman        Int
+  createdAt         DateTime           @default(now())
+  freezeLogs        FreezeLog[]
+
+  @@index([userId, status])
+}
+
+model FreezeLog {
+  id             String       @id @default(uuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  startDate      DateTime
+  endDate        DateTime
+  isApproved     Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}
+
+model AttendanceLog {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkedInAt    DateTime @default(now())
+  gateDeviceId   String
+  status         String   // SUCCESS, REJECTED
+  reason         String?
+
+  @@index([userId, checkedInAt])
+}
+
+model Assessment {
+  id             String          @id @default(uuid())
+  clientId       String
+  client         User            @relation("ClientAssessments", fields: [clientId], references: [id], onDelete: Cascade)
+  evaluatorId    String
+  supervisorId   String?
+  supervisor     User?           @relation("SupervisorAssessments", fields: [supervisorId], references: [id])
+  isApproved     Boolean         @default(false)
+  assessedAt     DateTime        @default(now())
+  notesFa        String?
+  posturalImages PosturalImage[]
+  findings       Finding[]
+
+  @@index([clientId, isApproved])
+}
+
+model PosturalImage {
+  id           String       @id @default(uuid())
+  assessmentId String
+  assessment   Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  view         PosturalView
+  imageUrl     String
+  gridMetaJson Json?        // Plumb line & tilt data
+  createdAt    DateTime     @default(now())
+}
+
+model Finding {
+  id           String     @id @default(uuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  region       String     // گردن، پشت، کمر، لگن، زانو، مچ پا
+  anomalyName  String     // e.g. هایپرلوردوز، زانوی ضربدری
+  severity     String     // خفیف، متوسط، شدید
+  notes        String?
+}
+
+model Exercise {
+  id                String               @id @default(uuid())
+  titleFa           String               // نام فارسی حرکت
+  muscleGroup       String
+  videoUrl          String?
+  cuesFa            String               // نکات تکنیکی و فرم صحیح
+  contraindications String[]             // لیست موارد منع مصرف بیومکانیکی
+  regressions       ExerciseRegression[] @relation("PrimaryToRegression")
+  primaryOf         ExerciseRegression[] @relation("RegressionToPrimary")
+}
+
+model ExerciseRegression {
+  id                   String   @id @default(uuid())
+  primaryExerciseId    String
+  primaryExercise      Exercise @relation("PrimaryToRegression", fields: [primaryExerciseId], references: [id], onDelete: Cascade)
+  regressionExerciseId String
+  regressionExercise   Exercise @relation("RegressionToPrimary", fields: [regressionExerciseId], references: [id], onDelete: Cascade)
+  triggerPainVas       Int      @default(5)
+
+  @@unique([primaryExerciseId, regressionExerciseId])
+}
+
+model WorkoutProgram {
+  id           String        @id @default(uuid())
+  clientId     String
+  client       User          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title        String
+  isClinical   Boolean       @default(false)
+  startDate    DateTime
+  endDate      DateTime
+  createdAt    DateTime      @default(now())
+  programItems ProgramItem[]
+
+  @@index([clientId])
+}
+
+model ProgramItem {
+  id           String         @id @default(uuid())
+  programId    String
+  program      WorkoutProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  dayOfWeek    Int            // 0 (شنبه) تا 6 (جمعه)
+  exerciseId   String
+  sets         Int
+  reps         String
+  tempo        String?
+  rpeTarget    Int?
+}
+
+model DailySessionLog {
+  id             String   @id @default(uuid())
+  clientId       String
+  client         User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  loggedAt       DateTime @default(now())
+  prePainVas     Int      // 0 to 10
+  painRegion     String?
+  postRpe        Int      // 1 to 10
+  isRedFlag      Boolean  @default(false)
+  clientFeedback String?
+
+  @@index([clientId, loggedAt])
+}
+
+model DietPlan {
+  id           String   @id @default(uuid())
+  clientId     String
+  client       User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  caloriesKcal Int
+  proteinGrams Int
+  carbsGrams   Int
+  fatGrams     Int
+  waterLiters  Float
+  createdAt    DateTime @default(now())
+  meals        Meal[]
+
+  @@index([clientId])
+}
+
+model Meal {
+  id            String   @id @default(uuid())
+  dietPlanId    String
+  dietPlan      DietPlan @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)
+  mealTitle     String   // صبحانه، میان‌وعده ۱، ناهار، قبل تمرین، شام
+  foodName      String
+  portionFa     String   // e.g. ۱۵۰ گرم سینه مرغ
+  exchangeGroup String   // پروتئین، کربوهیدرات، چربی، سبزیجات
+  exchangeList  Json     // لیست جایگزین‌های مجاز
+}

@@ -1,0 +1,30 @@
+# Android & Gradle
+.gradle/
+build/
+app/build/
+core/*/build/
+feature/*/build/
+local.properties
+*.iml
+.idea/
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.DS_Store
+*.apk
+*.aab
+
+# Node.js & Backend
+node_modules/
+dist/
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Database & Cache
+*.db
+*.db-journal
+prisma/migrations/
