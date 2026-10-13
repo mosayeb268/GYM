@@ -53,7 +53,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kineticcare.core.designsystem.theme.ClinicalRedAlert
 import com.kineticcare.core.designsystem.theme.KineticTealPrimary
 import com.kineticcare.core.localization.JalaliCalendarEngine
 import com.kineticcare.core.localization.mirrorForRtl

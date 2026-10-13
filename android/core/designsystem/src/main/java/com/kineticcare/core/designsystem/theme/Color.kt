@@ -30,6 +30,7 @@ val RedFlagError = Color(0xFFDC2626)
 val RedFlagOnError = Color(0xFFFFFFFF)
 val RedFlagErrorContainer = Color(0xFFFEE2E2)
 val RedFlagOnErrorContainer = Color(0xFF991B1B)
+val ClinicalRedAlert = RedFlagError
 
 // رنگ‌های پس‌زمینه و سطوح (Light Mode)
 val SurfaceLight = Color(0xFFF8FAFC)

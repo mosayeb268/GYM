@@ -38,14 +38,31 @@ jobs:
           cd android
           gradle wrapper
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --stacktrace
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build.log || {
+            echo "### ❌ خطا در کامپایل پروژه گریدل" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            tail -n 120 build.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: KineticCare-OS-v1.0.0-Debug-APK
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      - name: Upload Build Reports on Failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: gradle-build-failure-reports
+          path: |
+            android/build.log
+            android/**/build/reports/
+          retention-days: 7
 
       - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
