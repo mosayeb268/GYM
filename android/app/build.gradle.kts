@@ -51,6 +51,8 @@ android {
 dependencies {
     implementation(project(":core:localization"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:model"))
+    implementation(project(":core:network"))
     implementation(project(":feature:auth"))
     implementation(project(":feature:assessment"))
     implementation(project(":feature:turnstile"))
