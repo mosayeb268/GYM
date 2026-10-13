@@ -36,28 +36,20 @@ jobs:
       - name: Build Debug APK
         run: |
           cd android
-          gradle wrapper
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build.log || {
-            echo "### ❌ خطا در کامپایل پروژه گریدل" >> $GITHUB_STEP_SUMMARY
-            echo '```text' >> $GITHUB_STEP_SUMMARY
-            tail -n 120 build.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            exit 1
-          }
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
       - name: Locate and Collect APK
         run: |
           mkdir -p release-apks
-          find android -name "*.apk" -type f -exec cp -v {} release-apks/ \;
+          find . -name "*.apk" -type f -exec cp -v {} release-apks/ \;
           ls -la release-apks/
-          count=$(ls -1 release-apks/*.apk 2>/dev/null | wc -l)
-          if [ "$count" -eq 0 ]; then
-            echo "❌ No APK found anywhere in android directory!"
-            find android -name "*apk*"
+          if [ ! -f release-apks/*.apk ]; then
+            echo "❌ No APK file found in workspace!"
+            find . -type d -name "build"
             exit 1
           fi
-          echo "✅ Found $count APK file(s):"
+          echo "✅ APK ready for release:"
           ls -lh release-apks/*.apk
 
       - name: Upload APK Artifact
@@ -74,7 +66,6 @@ jobs:
         with:
           name: gradle-build-failure-reports
           path: |
-            android/build.log
             android/**/build/reports/
           retention-days: 7
 
