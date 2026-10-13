@@ -7,6 +7,9 @@ import { BiomechanicsEngineService } from './modules/biomechanics/biomechanics.s
 import { FoodExchangeService } from './modules/nutrition/food-exchange.service';
 import { ZarinPalPaymentService } from './modules/payment/zarinpal.service';
 import { OrthopedicReportGenerator } from './modules/assessment/pdf-report.service';
+import { AccountingService, OFFICIAL_CLINIC_PACKAGES } from './modules/accounting/accounting.service';
+import { ClientManagementService } from './modules/clients/client-management.service';
+import { TurnstileMonitorService } from './modules/access/turnstile-monitor.service';
 
 dotenv.config();
 
@@ -168,6 +171,90 @@ app.get('/api/v1/assessment/:id/pdf-report', async (req: Request, res: Response)
     return res.send(htmlReport);
   } catch (error: any) {
     return res.status(404).json({ error: error.message });
+  }
+});
+
+// ۷. ماژول مدیریت ثبت‌نام و مراجعین
+app.post('/api/v1/clients/register', async (req: Request, res: Response) => {
+  try {
+    const result = await ClientManagementService.registerClient(req.body);
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/v1/clients/adjust-sessions', async (req: Request, res: Response) => {
+  try {
+    const { subscriptionId, deltaSessions, reasonFa, adjustedByUserId } = req.body;
+    if (!subscriptionId || deltaSessions === undefined || !reasonFa) {
+      return res.status(400).json({ error: 'اطلاعات تغییر جلسه و دلیل الزامی است.' });
+    }
+    const result = await ClientManagementService.adjustSessions({
+      subscriptionId,
+      deltaSessions: Number(deltaSessions),
+      reasonFa,
+      adjustedByUserId: adjustedByUserId || 'admin-system',
+    });
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/v1/clients/freeze', async (req: Request, res: Response) => {
+  try {
+    const { subscriptionId, freezeDays, reasonFa } = req.body;
+    const result = await ClientManagementService.freezeSubscription({
+      subscriptionId,
+      freezeDays: Number(freezeDays),
+      reasonFa: reasonFa || 'درخواست کاربر',
+    });
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+app.get('/api/v1/clients/absenteeism-alerts', async (_req: Request, res: Response) => {
+  try {
+    const alerts = await ClientManagementService.getAbsenteeismAlerts(7);
+    return res.json(alerts);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+// ۸. ماژول حسابداری، پکیج‌ها و صدور فاکتور رسمی
+app.get('/api/v1/accounting/packages', (_req: Request, res: Response) => {
+  return res.json(OFFICIAL_CLINIC_PACKAGES);
+});
+
+app.post('/api/v1/accounting/purchase', async (req: Request, res: Response) => {
+  try {
+    const result = await AccountingService.purchaseSubscription(req.body);
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+app.get('/api/v1/accounting/summary', async (_req: Request, res: Response) => {
+  try {
+    const summary = await AccountingService.getFinancialSummary();
+    return res.json(summary);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+// ۹. ماژول مانیتورینگ زنده تردد پذیرش و کمد هوشمند
+app.get('/api/v1/access/live-feed', async (_req: Request, res: Response) => {
+  try {
+    const feed = await TurnstileMonitorService.getLiveAttendanceFeed(25);
+    return res.json(feed);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
   }
 });
 

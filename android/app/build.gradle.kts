@@ -55,6 +55,7 @@ dependencies {
     implementation(project(":feature:assessment"))
     implementation(project(":feature:turnstile"))
     implementation(project(":feature:dashboard"))
+    implementation(project(":feature:management"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

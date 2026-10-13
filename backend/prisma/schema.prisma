@@ -29,6 +29,19 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+enum PaymentMethod {
+  ONLINE_GATEWAY
+  POS_TERMINAL
+  CASH
+  WALLET
+}
+
+enum InvoiceStatus {
+  PAID
+  PENDING
+  CANCELLED
+}
+
 enum PosturalView {
   ANTERIOR
   POSTERIOR
@@ -37,46 +50,128 @@ enum PosturalView {
 }
 
 model User {
-  id                String            @id @default(uuid())
-  phoneNumber       String            @unique // e.g. 09123456789
-  nationalCode      String?           @unique // کد ملی ۱۰ رقمی
-  fullName          String
-  role              Role              @default(ATHLETE_CLIENT)
-  avatarUrl         String?
-  birthDateUtc      DateTime?
-  isActive          Boolean           @default(true)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                 String                 @id @default(uuid())
+  phoneNumber        String                 @unique // e.g. 09123456789
+  nationalCode       String?                @unique // کد ملی ۱۰ رقمی
+  fullName           String
+  role               Role                   @default(ATHLETE_CLIENT)
+  avatarUrl          String?
+  gender             String?                // آقا / خانم
+  birthDateUtc       DateTime?
+  emergencyContact   String?                // شماره تماس اضطراری
+  medicalHistory     String?                // سوابق آسیب‌دیدگی / جراحی
+  walletBalanceToman Int                    @default(0)
+  isActive           Boolean                @default(true)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
   
-  subscriptions     Subscription[]
-  assessments       Assessment[]      @relation("ClientAssessments")
-  supervisedAssess  Assessment[]      @relation("SupervisorAssessments")
-  workoutPrograms   WorkoutProgram[]
-  attendanceLogs    AttendanceLog[]
-  dietPlans         DietPlan[]
-  dailySessionLogs  DailySessionLog[]
+  subscriptions      Subscription[]
+  assessments        Assessment[]           @relation("ClientAssessments")
+  supervisedAssess   Assessment[]           @relation("SupervisorAssessments")
+  workoutPrograms    WorkoutProgram[]
+  attendanceLogs     AttendanceLog[]
+  dietPlans          DietPlan[]
+  dailySessionLogs   DailySessionLog[]
+  invoices           Invoice[]
+  lockerAllocations  LockerAllocation[]
+  buffetOrders       BuffetOrder[]
+  adjustedByLogs     SessionAdjustmentLog[] @relation("AdjustedBy")
+  commissionSplits   CommissionSplit[]
 
   @@index([phoneNumber])
   @@index([role])
 }
 
 model Subscription {
-  id                String             @id @default(uuid())
+  id                String                 @id @default(uuid())
   userId            String
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   planTitle         String
   type              SubscriptionType
-  status            SubscriptionStatus @default(ACTIVE)
+  status            SubscriptionStatus     @default(ACTIVE)
   startDate         DateTime
   endDate           DateTime
   totalSessions     Int?
   remainingSessions Int?
-  includesClinical  Boolean            @default(false)
+  includesClinical  Boolean                @default(false)
   priceToman        Int
-  createdAt         DateTime           @default(now())
+  maxFreezeDays     Int                    @default(15)
+  usedFreezeDays    Int                    @default(0)
+  createdAt         DateTime               @default(now())
+  
   freezeLogs        FreezeLog[]
+  invoices          Invoice[]
+  adjustmentLogs    SessionAdjustmentLog[]
+  commissionSplits  CommissionSplit[]
 
   @@index([userId, status])
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique // e.g. INV-1403-0891
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String?
+  subscription  Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  titleFa       String
+  amountToman   Int
+  discountToman Int           @default(0)
+  paymentMethod PaymentMethod @default(POS_TERMINAL)
+  paymentRef    String?       // کد پیگیری شاپرک یا کارتخوان POS
+  status        InvoiceStatus @default(PAID)
+  issuedAt      DateTime      @default(now())
+  paidAt        DateTime?
+  notesFa       String?
+
+  @@index([userId, status])
+  @@index([issuedAt])
+}
+
+model SessionAdjustmentLog {
+  id               String       @id @default(uuid())
+  subscriptionId   String
+  subscription     Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  adjustedByUserId String
+  adjustedByUser   User         @relation("AdjustedBy", fields: [adjustedByUserId], references: [id])
+  deltaSessions    Int          // +2 یا -1
+  previousSessions Int
+  newSessions      Int
+  reasonFa         String       // مثلا: جبران جلسه لغو شده توسط مربی / فریز پزشکی
+  createdAt        DateTime     @default(now())
+}
+
+model LockerAllocation {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lockerNumber Int       // e.g. شماره کمد ۱۲
+  assignedAt   DateTime  @default(now())
+  releasedAt   DateTime?
+  isActive     Boolean   @default(true)
+
+  @@index([userId, isActive])
+}
+
+model BuffetOrder {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalToman Int
+  itemsJson  Json     // لیست اقلام بوفه (شیک پروتئین، آبمیوه، مکمل)
+  isPaid     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model CommissionSplit {
+  id             String       @id @default(uuid())
+  trainerId      String
+  trainer        User         @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  trainerPercent Int          // درصد سهم مربی (مثلا ۶۰٪)
+  amountToman    Int          // سهم به تومان
+  createdAt      DateTime     @default(now())
 }
 
 model FreezeLog {
@@ -90,13 +185,13 @@ model FreezeLog {
 }
 
 model AttendanceLog {
-  id             String   @id @default(uuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  checkedInAt    DateTime @default(now())
-  gateDeviceId   String
-  status         String   // SUCCESS, REJECTED
-  reason         String?
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkedInAt  DateTime @default(now())
+  gateDeviceId String
+  status       String   // SUCCESS, REJECTED
+  reason       String?
 
   @@index([userId, checkedInAt])
 }
@@ -174,15 +269,15 @@ model WorkoutProgram {
 }
 
 model ProgramItem {
-  id           String         @id @default(uuid())
-  programId    String
-  program      WorkoutProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
-  dayOfWeek    Int            // 0 (شنبه) تا 6 (جمعه)
-  exerciseId   String
-  sets         Int
-  reps         String
-  tempo        String?
-  rpeTarget    Int?
+  id         String         @id @default(uuid())
+  programId  String
+  program    WorkoutProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  dayOfWeek  Int            // 0 (شنبه) تا 6 (جمعه)
+  exerciseId String
+  sets       Int
+  reps       String
+  tempo      String?
+  rpeTarget  Int?
 }
 
 model DailySessionLog {
