@@ -5,6 +5,8 @@ import { OtpService } from './modules/auth/otp.service';
 import { QrTurnstileService } from './modules/access/qr.service';
 import { BiomechanicsEngineService } from './modules/biomechanics/biomechanics.service';
 import { FoodExchangeService } from './modules/nutrition/food-exchange.service';
+import { ZarinPalPaymentService } from './modules/payment/zarinpal.service';
+import { OrthopedicReportGenerator } from './modules/assessment/pdf-report.service';
 
 dotenv.config();
 
@@ -122,6 +124,50 @@ app.post('/api/v1/nutrition/exchange', (req: Request, res: Response) => {
     return res.json(result);
   } catch (error: any) {
     return res.status(400).json({ error: error.message });
+  }
+});
+
+// ۵. ماژول پرداخت آنلاین شهریه و اشتراک به تومان (ZarinPal / Shaparak)
+app.post('/api/v1/payment/checkout', async (req: Request, res: Response) => {
+  try {
+    const { userId, subscriptionId, amountToman, callbackUrl } = req.body;
+    if (!userId || !subscriptionId || !amountToman) {
+      return res.status(400).json({ error: 'اطلاعات کاربر، اشتراک و مبلغ الزامی است.' });
+    }
+    const result = await ZarinPalPaymentService.requestPayment(
+      userId,
+      subscriptionId,
+      amountToman,
+      callbackUrl || 'http://localhost:3000/payment/callback'
+    );
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/v1/payment/verify', async (req: Request, res: Response) => {
+  try {
+    const { authority, subscriptionId, amountToman } = req.body;
+    if (!authority || !subscriptionId || !amountToman) {
+      return res.status(400).json({ error: 'شناسه مرجع، شناسه اشتراک و مبلغ الزامی است.' });
+    }
+    const result = await ZarinPalPaymentService.verifyPayment(authority, subscriptionId, amountToman);
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+// ۶. تولید و دانلود گزارش ارجاع ارتوپدی و فوتوگرامتری مراجع
+app.get('/api/v1/assessment/:id/pdf-report', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const htmlReport = await OrthopedicReportGenerator.generateHtmlReport(id);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(htmlReport);
+  } catch (error: any) {
+    return res.status(404).json({ error: error.message });
   }
 });
 
