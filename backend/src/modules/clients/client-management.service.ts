@@ -1,5 +1,14 @@
 import { prisma } from '../../common/prisma';
-import { Role, SubscriptionStatus } from '@prisma/client';
+
+export const Role = {
+  ATHLETE_CLIENT: 'ATHLETE_CLIENT' as const,
+};
+
+export const SubscriptionStatus = {
+  ACTIVE: 'ACTIVE' as const,
+  EXPIRED: 'EXPIRED' as const,
+  FROZEN: 'FROZEN' as const,
+};
 
 export class ClientManagementService {
   /**

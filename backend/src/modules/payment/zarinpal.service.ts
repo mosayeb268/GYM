@@ -1,5 +1,8 @@
 import { prisma } from '../../common/prisma';
-import { SubscriptionStatus } from '@prisma/client';
+
+export const SubscriptionStatus = {
+  ACTIVE: 'ACTIVE' as const,
+};
 
 export interface PaymentRequestResult {
   success: boolean;

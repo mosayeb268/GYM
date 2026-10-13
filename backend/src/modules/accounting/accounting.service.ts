@@ -1,5 +1,9 @@
 import { prisma } from '../../common/prisma';
-import { PaymentMethod, InvoiceStatus, SubscriptionType, SubscriptionStatus } from '@prisma/client';
+
+export type SubscriptionType = 'TIME_BASED' | 'SESSION_BASED' | 'HYBRID';
+export type SubscriptionStatus = 'ACTIVE' | 'FROZEN' | 'EXPIRED';
+export type PaymentMethod = 'ONLINE_GATEWAY' | 'POS_TERMINAL' | 'CASH' | 'WALLET';
+export type InvoiceStatus = 'PAID' | 'PENDING' | 'CANCELLED';
 
 export interface PackageTier {
   id: string;

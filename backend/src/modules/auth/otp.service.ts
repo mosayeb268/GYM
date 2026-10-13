@@ -2,7 +2,13 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../common/prisma';
 import { SmsServiceFactory } from '../../common/sms/sms-factory';
-import { Role } from '@prisma/client';
+
+export const Role = {
+  ATHLETE_CLIENT: 'ATHLETE_CLIENT' as const,
+  SUPER_ADMIN: 'SUPER_ADMIN' as const,
+  CLINICAL_DIRECTOR: 'CLINICAL_DIRECTOR' as const,
+  CORRECTIVE_TRAINER: 'CORRECTIVE_TRAINER' as const,
+};
 
 interface OtpRecord {
   code: string;

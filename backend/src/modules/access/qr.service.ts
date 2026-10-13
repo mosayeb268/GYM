@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { prisma } from '../../common/prisma';
-import { SubscriptionStatus } from '@prisma/client';
+
+export type SubscriptionStatus = 'ACTIVE' | 'FROZEN' | 'EXPIRED';
 
 export interface QrVerifyResult {
   allowed: boolean;
